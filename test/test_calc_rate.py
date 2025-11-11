@@ -44,8 +44,8 @@ def test_rate_calculation():
         X,
         y,
         bandwidth=0.01,
-        n_mcmc=2000,
-        burn_in=1000,
+        n_mcmc_steps=2000,
+        n_burn_in_steps=1000,
         low_rank=False,
         verbose=True
     )

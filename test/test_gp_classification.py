@@ -58,8 +58,8 @@ def test_gp_classification():
     samples = elliptical_slice_sampling(
         K,
         y,
-        n_mcmc=100,
-        burn_in=50,
+        n_mcmc_steps=100,
+        n_burn_in_steps=50,
         probit=True,
         seed=42,
         verbose=True

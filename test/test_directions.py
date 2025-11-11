@@ -207,16 +207,16 @@ class TestGenerateEquidistributedCones:
 
     def test_single_direction_per_cone(self):
         """Test with one direction per cone (just sphere points)"""
-        n_cone = 50
+        n_cones = 50
         directions = generate_equidistributed_cones(
-            n_cone=n_cone,
+            n_cones=n_cones,
             cap_radius=0.1,
             n_direction_per_cone=1,
             hemisphere=False
         )
 
-        # Should have exactly n_cone directions
-        assert directions.shape[0] == n_cone
+        # Should have exactly n_cones directions
+        assert directions.shape[0] == n_cones
         assert directions.shape[1] == 3
 
         # All should be unit vectors
@@ -225,17 +225,17 @@ class TestGenerateEquidistributedCones:
 
     def test_multiple_directions_per_cone(self):
         """Test with multiple directions per cone"""
-        n_cone = 20
+        n_cones = 20
         n_dir = 5
         directions = generate_equidistributed_cones(
-            n_cone=n_cone,
+            n_cones=n_cones,
             cap_radius=0.2,
             n_direction_per_cone=n_dir,
             hemisphere=False
         )
 
-        # Should have n_cone * n_dir directions
-        assert directions.shape[0] == n_cone * n_dir
+        # Should have n_cones * n_dir directions
+        assert directions.shape[0] == n_cones * n_dir
         assert directions.shape[1] == 3
 
         # All should be unit vectors
@@ -244,32 +244,32 @@ class TestGenerateEquidistributedCones:
 
     def test_hemisphere_cones(self):
         """Test cone generation on hemisphere"""
-        n_cone = 30
+        n_cones = 30
         directions = generate_equidistributed_cones(
-            n_cone=n_cone,
+            n_cones=n_cones,
             cap_radius=0.15,
             n_direction_per_cone=3,
             hemisphere=True
         )
 
-        # Should have n_cone * 3 directions
-        assert directions.shape[0] == n_cone * 3
+        # Should have n_cones * 3 directions
+        assert directions.shape[0] == n_cones * 3
 
         # Most directions should have positive z (allowing for cone spread)
         # At least the central axes should be in upper hemisphere
-        assert np.sum(directions[:, 2] > 0) > n_cone * 0.5
+        assert np.sum(directions[:, 2] > 0) > n_cones * 0.5
 
     def test_zero_cap_radius(self):
         """Test with very small cap radius"""
-        n_cone = 10
+        n_cones = 10
         directions = generate_equidistributed_cones(
-            n_cone=n_cone,
+            n_cones=n_cones,
             cap_radius=0.01,
             n_direction_per_cone=4,
             hemisphere=False
         )
 
-        assert directions.shape[0] == n_cone * 4
+        assert directions.shape[0] == n_cones * 4
 
         # All should be unit vectors
         norms = np.linalg.norm(directions, axis=1)
@@ -277,15 +277,15 @@ class TestGenerateEquidistributedCones:
 
     def test_large_cap_radius(self):
         """Test with large cap radius"""
-        n_cone = 10
+        n_cones = 10
         directions = generate_equidistributed_cones(
-            n_cone=n_cone,
+            n_cones=n_cones,
             cap_radius=0.5,
             n_direction_per_cone=6,
             hemisphere=False
         )
 
-        assert directions.shape[0] == n_cone * 6
+        assert directions.shape[0] == n_cones * 6
 
         # All should be unit vectors
         norms = np.linalg.norm(directions, axis=1)
@@ -293,30 +293,30 @@ class TestGenerateEquidistributedCones:
 
     def test_default_parameters(self):
         """Test with default parameters"""
-        n_cone = 25
-        directions = generate_equidistributed_cones(n_cone=n_cone)
+        n_cones = 25
+        directions = generate_equidistributed_cones(n_cones=n_cones)
 
         # Default: n_direction_per_cone=1, cap_radius=0.1, hemisphere=False
-        assert directions.shape[0] == n_cone
+        assert directions.shape[0] == n_cones
 
         norms = np.linalg.norm(directions, axis=1)
         np.testing.assert_allclose(norms, 1.0, rtol=1e-10)
 
     def test_cone_structure(self):
         """Test that directions form proper cone structure"""
-        n_cone = 5
+        n_cones = 5
         n_dir = 8
         cap_radius = 0.2
 
         directions = generate_equidistributed_cones(
-            n_cone=n_cone,
+            n_cones=n_cones,
             cap_radius=cap_radius,
             n_direction_per_cone=n_dir,
             hemisphere=False
         )
 
         # Check structure: every n_dir directions should form a cone
-        for i in range(n_cone):
+        for i in range(n_cones):
             start_idx = i * n_dir
             end_idx = (i + 1) * n_dir
             cone_dirs = directions[start_idx:end_idx]
@@ -340,7 +340,7 @@ class TestIntegration:
         """Test complete workflow for sphere direction generation"""
         # Generate 100 cones with 5 directions each on full sphere
         directions = generate_equidistributed_cones(
-            n_cone=100,
+            n_cones=100,
             cap_radius=0.1,
             n_direction_per_cone=5,
             hemisphere=False
@@ -362,7 +362,7 @@ class TestIntegration:
         """Test complete workflow for hemisphere direction generation"""
         # Generate 50 cones with 4 directions each on hemisphere
         directions = generate_equidistributed_cones(
-            n_cone=50,
+            n_cones=50,
             cap_radius=0.15,
             n_direction_per_cone=4,
             hemisphere=True
@@ -380,20 +380,20 @@ class TestIntegration:
 
     def test_reproducibility(self):
         """Test that generation is deterministic (reproducible)"""
-        n_cone = 30
+        n_cones = 30
         cap_radius = 0.12
         n_dir = 3
 
         # Generate twice with same parameters
         dirs1 = generate_equidistributed_cones(
-            n_cone=n_cone,
+            n_cones=n_cones,
             cap_radius=cap_radius,
             n_direction_per_cone=n_dir,
             hemisphere=False
         )
 
         dirs2 = generate_equidistributed_cones(
-            n_cone=n_cone,
+            n_cones=n_cones,
             cap_radius=cap_radius,
             n_direction_per_cone=n_dir,
             hemisphere=False
@@ -404,15 +404,15 @@ class TestIntegration:
 
     def test_different_scales(self):
         """Test direction generation at different scales"""
-        for n_cone in [10, 50, 100, 200]:
+        for n_cones in [10, 50, 100, 200]:
             directions = generate_equidistributed_cones(
-                n_cone=n_cone,
+                n_cones=n_cones,
                 n_direction_per_cone=1,
                 hemisphere=False
             )
 
             # Verify correct count
-            assert directions.shape[0] == n_cone
+            assert directions.shape[0] == n_cones
 
             # Verify unit vectors
             norms = np.linalg.norm(directions, axis=1)
@@ -431,7 +431,7 @@ class TestEdgeCases:
     def test_single_cone(self):
         """Test with single cone"""
         directions = generate_equidistributed_cones(
-            n_cone=1,
+            n_cones=1,
             n_direction_per_cone=1,
             hemisphere=False
         )

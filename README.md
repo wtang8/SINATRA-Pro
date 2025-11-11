@@ -103,7 +103,7 @@ mesh.normalize()
 
 # Generate equidistributed directions for EC curves
 directions = generate_equidistributed_cones(
-    n_cone=50,
+    n_cones=50,
     cap_radius=0.8,
     n_direction_per_cone=1,
     hemisphere=False
@@ -113,7 +113,7 @@ directions = generate_equidistributed_cones(
 radius, ec_curves = compute_ec_curve(
     mesh,
     directions,
-    n_filtration=25,
+    n_filtrations=25,
     ball_radius=1.0,
     ec_type="DECT",
     include_faces=True
@@ -136,7 +136,7 @@ python3 -m sinatra_pro
                            [-of OFFSET] [-s SELECTION] [-r RADIUS] [-hs] [-et EC_TYPE]
                            [-c N_CONE] [-d N_DIRECTION_PER_CONE] [-t CAP_RADIUS]
                            [-l N_FILTRATION] [-bw BANDWIDTH] [-sm SAMPLING_METHOD]
-                           [-nm N_MCMC] [-ll] [-v] [-no]
+                           [-nm N_MCMC_STEPS] [-ll] [-v] [-no]
 
         optional arguments:
 
@@ -182,19 +182,19 @@ python3 -m sinatra_pro
               -et EC_TYPE, --ec_type EC_TYPE
                                     type of Euler characteristic measure (DECT/ECT/SECT),
                                     default: DECT
-              -c N_CONE, --n_cone N_CONE
+              -c N_CONE, --n_cones N_CONE
                                     number of cone, default: 1
               -d N_DIRECTION_PER_CONE, --n_direction_per_cone N_DIRECTION_PER_CONE
                                     number of direction per cone, default: 1
               -t CAP_RADIUS, --cap_radius CAP_RADIUS
                                     cap radius, default: 0.8
-              -l N_FILTRATION, --n_filtration N_FILTRATION
+              -l N_FILTRATION, --n_filtrations N_FILTRATION
                                     number of filtration step, default: 20
               -bw BANDWIDTH, --bandwidth BANDWIDTH
                                     bandwidth for elliptical slice sampling, default: 0.01
               -sm SAMPLING_METHOD, --sampling_method SAMPLING_METHOD
                                     sampling method, default: ESS
-              -nm N_MCMC, --n_mcmc N_MCMC
+              -nm N_MCMC_STEPS, --n_mcmc_steps N_MCMC_STEPS
                                     number of sample from ESS
               -ll, --logistic_likelihood
                                     use logistic likelihood instead of probit likelihood
@@ -216,12 +216,12 @@ Starting from MD trajectories
                 --traj_file_B "R164S.xtc" \
                 --selection "protein and resid 65:213 and not (resid 164 and not backbone)" \
                 --radius 2.0 \
-                --n_cone 4 \
+                --n_cones 4 \
                 --n_direction_per_cone 4 \
                 --cap_radius 0.80 \
                 --ec_type "DECT" \
-                --n_filtration 60 \
-                --n_mcmc 100000 \
+                --n_filtrations 60 \
+                --n_mcmc_steps 100000 \
                 --parallel \
                 --n_core 4 --verbose
 
@@ -235,12 +235,12 @@ Starting from aligned PDB structures
                 --pdbpath_B "WT_R164S_65_230_2.0/pdb/R164S_offset_0/" \
                 --pdb_reference "WT_R164S_65_230_2.0/pdb/WT_offset_0/WT_frame0.pdb" \
                 --radius 2.0 \
-                --n_cone 1 \
+                --n_cones 1 \
                 --n_direction_per_cone 1 \
                 --cap_radius 0.80 \
                 --ec_type "DECT" \
-                --n_filtration 20 \
-                --n_mcmc 10000 \
+                --n_filtrations 20 \
+                --n_mcmc_steps 10000 \
                 --parallel \
                 --n_core 4 --verbose
 

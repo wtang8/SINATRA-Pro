@@ -218,22 +218,22 @@ class TestEllipticalSliceSampling:
     
     def test_sampling_shape(self):
         """Test that samples have correct shape"""
-        n_mcmc = 100
+        n_mcmc_steps = 100
         samples = elliptical_slice_sampling(
             self.K, self.y,
-            n_mcmc=n_mcmc,
-            burn_in=50,
+            n_mcmc_steps=n_mcmc_steps,
+            n_burn_in_steps=50,
             seed=42,
             verbose=False
         )
-        assert samples.shape == (n_mcmc, self.n)
+        assert samples.shape == (n_mcmc_steps, self.n)
     
     def test_sampling_finite(self):
         """Test that all samples are finite"""
         samples = elliptical_slice_sampling(
             self.K, self.y,
-            n_mcmc=50,
-            burn_in=20,
+            n_mcmc_steps=50,
+            n_burn_in_steps=20,
             seed=42,
             verbose=False
         )
@@ -243,8 +243,8 @@ class TestEllipticalSliceSampling:
         """Test both link functions work"""
         samples_probit = elliptical_slice_sampling(
             self.K, self.y,
-            n_mcmc=50,
-            burn_in=20,
+            n_mcmc_steps=50,
+            n_burn_in_steps=20,
             probit=True,
             seed=42,
             verbose=False
@@ -252,8 +252,8 @@ class TestEllipticalSliceSampling:
         
         samples_logistic = elliptical_slice_sampling(
             self.K, self.y,
-            n_mcmc=50,
-            burn_in=20,
+            n_mcmc_steps=50,
+            n_burn_in_steps=20,
             probit=False,
             seed=42,
             verbose=False
@@ -267,16 +267,16 @@ class TestEllipticalSliceSampling:
         """Test that same seed gives same results"""
         samples1 = elliptical_slice_sampling(
             self.K, self.y,
-            n_mcmc=50,
-            burn_in=20,
+            n_mcmc_steps=50,
+            n_burn_in_steps=20,
             seed=123,
             verbose=False
         )
         
         samples2 = elliptical_slice_sampling(
             self.K, self.y,
-            n_mcmc=50,
-            burn_in=20,
+            n_mcmc_steps=50,
+            n_burn_in_steps=20,
             seed=123,
             verbose=False
         )
@@ -287,16 +287,16 @@ class TestEllipticalSliceSampling:
         """Test that different seeds give different results"""
         samples1 = elliptical_slice_sampling(
             self.K, self.y,
-            n_mcmc=50,
-            burn_in=20,
+            n_mcmc_steps=50,
+            n_burn_in_steps=20,
             seed=123,
             verbose=False
         )
         
         samples2 = elliptical_slice_sampling(
             self.K, self.y,
-            n_mcmc=50,
-            burn_in=20,
+            n_mcmc_steps=50,
+            n_burn_in_steps=20,
             seed=456,
             verbose=False
         )
@@ -307,8 +307,8 @@ class TestEllipticalSliceSampling:
         """Test that posterior mean is sensible"""
         samples = elliptical_slice_sampling(
             self.K, self.y,
-            n_mcmc=200,
-            burn_in=100,
+            n_mcmc_steps=200,
+            n_burn_in_steps=100,
             seed=42,
             verbose=False
         )
@@ -328,8 +328,8 @@ class TestEllipticalSliceSampling:
         # Short burn-in
         samples_short = elliptical_slice_sampling(
             self.K, self.y,
-            n_mcmc=100,
-            burn_in=10,
+            n_mcmc_steps=100,
+            n_burn_in_steps=10,
             seed=42,
             verbose=False
         )
@@ -337,8 +337,8 @@ class TestEllipticalSliceSampling:
         # Long burn-in
         samples_long = elliptical_slice_sampling(
             self.K, self.y,
-            n_mcmc=100,
-            burn_in=100,
+            n_mcmc_steps=100,
+            n_burn_in_steps=100,
             seed=42,
             verbose=False
         )
@@ -353,8 +353,8 @@ class TestEllipticalSliceSampling:
         
         samples = elliptical_slice_sampling(
             K_singular, self.y,
-            n_mcmc=50,
-            burn_in=20,
+            n_mcmc_steps=50,
+            n_burn_in_steps=20,
             seed=42,
             verbose=False
         )
@@ -369,8 +369,8 @@ class TestEllipticalSliceSampling:
         with pytest.raises(AssertionError):
             elliptical_slice_sampling(
                 self.K, y_wrong,
-                n_mcmc=10,
-                burn_in=5,
+                n_mcmc_steps=10,
+                n_burn_in_steps=5,
                 verbose=False
             )
     
@@ -384,8 +384,8 @@ class TestEllipticalSliceSampling:
         
         samples = elliptical_slice_sampling(
             K_gpu, y_gpu,
-            n_mcmc=50,
-            burn_in=20,
+            n_mcmc_steps=50,
+            n_burn_in_steps=20,
             seed=42,
             verbose=False
         )
@@ -420,8 +420,8 @@ class TestIntegration:
         # Run MCMC
         samples = elliptical_slice_sampling(
             K, y,
-            n_mcmc=500,
-            burn_in=200,
+            n_mcmc_steps=500,
+            n_burn_in_steps=200,
             probit=True,
             seed=42,
             verbose=False
@@ -459,8 +459,8 @@ class TestIntegration:
         
         samples = elliptical_slice_sampling(
             K, y,
-            n_mcmc=200,
-            burn_in=100,
+            n_mcmc_steps=200,
+            n_burn_in_steps=100,
             seed=42,
             verbose=False
         )
@@ -491,8 +491,8 @@ class TestIntegration:
         
         samples = elliptical_slice_sampling(
             K, y,
-            n_mcmc=200,
-            burn_in=100,
+            n_mcmc_steps=200,
+            n_burn_in_steps=100,
             seed=42,
             verbose=False
         )

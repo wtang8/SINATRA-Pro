@@ -176,7 +176,7 @@ def compute_ec_curve(
     >>> from sinatra_pro.directions import generate_equidistributed_cones
     >>> vertices = np.random.rand(100, 3)
     >>> mesh = Mesh(vertices, generate_mesh=True, radius=2.0)
-    >>> directions = generate_equidistributed_cones(n_cone=50)
+    >>> directions = generate_equidistributed_cones(n_cones=50)
     >>> radius, ec_curves = compute_ec_curve(mesh, directions)
     >>> ec_curves.shape
     (50, 25)

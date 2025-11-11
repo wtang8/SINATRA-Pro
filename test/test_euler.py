@@ -135,7 +135,7 @@ class TestComputeECCurveSingle:
 
         for n_filt in [10, 25, 50, 100]:
             ec_curve = compute_ec_curve_single(
-                mesh, direction, ball_radius=1.0, n_filtration=n_filt
+                mesh, direction, ball_radius=1.0, n_filtrations=n_filt
             )
             assert ec_curve.shape == (n_filt,)
 
@@ -245,7 +245,7 @@ class TestComputeECCurve:
         directions = np.random.randn(50, 3)
         directions = directions / np.linalg.norm(directions, axis=1, keepdims=True)
 
-        radius, ec_curves = compute_ec_curve(mesh, directions, n_filtration=30)
+        radius, ec_curves = compute_ec_curve(mesh, directions, n_filtrations=30)
 
         assert radius.shape == (30,)
         assert ec_curves.shape == (50, 30)
@@ -279,7 +279,7 @@ class TestComputeECCurve:
         radius, ec_curves = compute_ec_curve(
             mesh,
             directions,
-            n_filtration=50,
+            n_filtrations=50,
             ball_radius=2.0,
             ec_type="DECT",
             include_faces=False
@@ -305,14 +305,14 @@ class TestIntegration:
 
         # Generate equidistributed directions
         directions = generate_equidistributed_cones(
-            n_cone=20,
+            n_cones=20,
             n_direction_per_cone=1,
             hemisphere=False
         )
 
         # Compute EC curves
         radius, ec_curves = compute_ec_curve(
-            mesh, directions, n_filtration=30, ball_radius=1.0
+            mesh, directions, n_filtrations=30, ball_radius=1.0
         )
 
         # Verify shapes
