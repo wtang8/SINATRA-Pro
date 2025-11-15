@@ -204,6 +204,12 @@ def convert_pdb_to_meshes(
         # Load structure
         u = mda.Universe(str(pdb_file))
         atoms_mesh = u.select_atoms(mesh_selection)
+        atoms_align = u.select_atoms(align_selection)
+        
+        # center atoms to atoms_align
+        center_of_mass = atoms_mesh.center_of_mass()
+        atoms_mesh.translate(-center_of_mass)
+        atoms_align.translate(-center_of_mass)
 
         _align_selection = align_selection
         # Apply sequence alignment mask if needed
