@@ -276,6 +276,11 @@ def convert_pdb_to_meshes(
         if align_sequence and seqsel_B is not None:
             _align_selection = "resid " + " ".join(str(r.resid) for r in seqsel_B) + " and " + align_selection
         atoms_mesh = u.select_atoms(mesh_selection)
+        # center atoms to atoms_align
+        center_of_mass = atoms_mesh.center_of_mass()
+        atoms_mesh.translate(-center_of_mass)
+        atoms_align.translate(-center_of_mass)
+        
         if len(atoms_mesh) == 0:
             raise ValueError(
                 f"Mesh selection '{mesh_selection}' returned no atoms in {pdb_file}"
