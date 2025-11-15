@@ -121,7 +121,14 @@ def rate(
         >>> print(results['RATE'])  # Importance scores for each feature
     """
     n, p = X.shape
-    device = X.device
+    # device = X.device
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    # move everything to device 
+    X = X.to(device)
+    if f_draws is not None:
+        f_draws = f_draws.to(device)
+    if beta_draws is not None:
+        beta_draws = beta_draws.to(device)   
     
     if f_draws is None and beta_draws is None:
         raise ValueError("Must provide either f_draws or beta_draws")
@@ -145,7 +152,9 @@ def rate(
         beta_draws = (X_pinv @ f_draws.T).T  # Shape: (n_draws, p)
     assert beta_draws is not None, "beta_draws should not be None"
     assert beta_draws.shape[1] == p, f"beta_draws should have shape (n_draws, {p})"
+
     
+
     # Compute mean effect size analogs
     mu = beta_draws.mean(dim=0)  # Shape: (p,)
     
