@@ -18,6 +18,7 @@ from MDAnalysis.lib.util import convert_aa_code
 from MDAnalysis.core.groups import AtomGroup
 from sinatra_pro.mesh import Mesh
 
+import mdtraj as md
 
 # --- Extract sequences ---
 def _extract_sequence(universe, selection="protein"):
@@ -190,7 +191,6 @@ def convert_pdb_to_meshes(
 
     # Reference structure: first frame from protein A
     frame_ref: AtomGroup | None = None
-    frame_ref_CA: AtomGroup | None = None
 
     # Process protein A files
     for i, pdb_file in enumerate(pdb_files_A):
@@ -201,16 +201,6 @@ def convert_pdb_to_meshes(
             )
             sys.stdout.flush()
 
-        # Load structure
-        u = mda.Universe(str(pdb_file))
-        atoms_mesh = u.select_atoms(mesh_selection)
-        atoms_align = u.select_atoms(align_selection)
-        
-        # center atoms to atoms_align
-        center_of_mass = atoms_align.center_of_mass()
-        atoms_mesh.translate(-center_of_mass)
-        atoms_align.translate(-center_of_mass)
-
         _align_selection = align_selection
         # Apply sequence alignment mask if needed
         if align_sequence and seqsel_A is not None:
@@ -218,34 +208,34 @@ def convert_pdb_to_meshes(
         
         # Set reference frame (first file)
         if frame_ref is None:
-            atoms_align = u.select_atoms(align_selection)
-            if len(atoms_align) == 0:
+            # Load structure
+            u = mda.Universe(str(pdb_file))
+            frame_ref = u.select_atoms(_align_selection)
+            assert frame_ref is not None
+            if frame_ref.n_atoms == 0:
                 raise ValueError(
-                    f"Alignment selection '{atoms_align}' returned no atoms in {pdb_file}"
+                    f"Alignment selection '{frame_ref}' returned no atoms in {pdb_file}"
                 )
-            frame_ref = atoms_align
-            frame_ref_CA = atoms_align.select_atoms(_align_selection)
-
-            if frame_ref_CA is None or len(frame_ref_CA) == 0:
-                raise ValueError(
-                    f"No CA atoms found in reference structure {pdb_file}"
-                )
-
             # Center reference at origin
-            frame_ref.translate(-frame_ref_CA.center_of_mass())
-
+            frame_ref.translate(-frame_ref.center_of_mass())
             if verbose:
                 print(f"\nUsing {pdb_file.name} as reference frame")
-                print(f"Reference has {len(frame_ref)} atoms")
-                print(f"Using {len(frame_ref_CA)} atoms for alignment")
-        else:
-            # Align to reference
-            try:
-                align.alignto(atoms_mesh, frame_ref, select=_align_selection, weights=None)
-            except Exception as e:
-                raise ValueError(
-                    f"Failed to align {pdb_file.name} to reference: {e}"
-                )
+                print(f"Using {len(frame_ref)} atoms for alignment")
+            
+        # else:
+
+        u = mda.Universe(str(pdb_file))
+        atoms_mesh = u.select_atoms(mesh_selection)
+
+        # Align to reference
+        try:
+            atoms_align = u.select_atoms(_align_selection)
+            atoms_mesh.translate(-atoms_align.center_of_mass())
+            align.alignto(atoms_mesh, frame_ref, select=_align_selection, weights=None)
+        except Exception as e:
+            raise ValueError(
+                f"Failed to align {pdb_file.name} to reference: {e}"
+            )
 
         # Generate mesh
         vertices = torch.from_numpy(atoms_mesh.positions.copy()).float()
@@ -276,12 +266,10 @@ def convert_pdb_to_meshes(
         if align_sequence and seqsel_B is not None:
             _align_selection = "resid " + " ".join(str(r.resid) for r in seqsel_B) + " and " + align_selection
         atoms_mesh = u.select_atoms(mesh_selection)
-        atoms_align = u.select_atoms(align_selection)
         
         # center atoms to atoms_align
-        center_of_mass = atoms_align.center_of_mass()
-        atoms_mesh.translate(-center_of_mass)
-        atoms_align.translate(-center_of_mass)
+        atoms_align = u.select_atoms(_align_selection)
+        atoms_mesh.translate(-atoms_align.center_of_mass())
 
         if len(atoms_mesh) == 0:
             raise ValueError(
@@ -378,3 +366,176 @@ def load_single_pdb_to_mesh(
         mesh.normalize()
 
     return mesh
+
+
+def convert_trj_to_meshes(
+    trj_file_A: str,
+    top_file_A: str,
+    trj_file_B: str,
+    top_file_B: str,
+    align_selection: str = "protein and name CA",
+    mesh_selection: str = "protein and not type H",
+    radius_sim: float = 3.0,
+    align_sequence: bool = False,
+    verbose: bool = True
+) -> Tuple[List[Mesh], List[int]]:
+    """
+    Convert PDB files from two directories to aligned meshes.
+
+    Reads PDB files from two directories, aligns all structures to the first
+    frame (from protein A), and generates simplicial meshes. Optionally performs
+    sequence alignment to handle proteins with different sequences.
+
+    Parameters
+    ----------
+    trj_file_A : str
+        Directory containing PDB files for protein A
+    top_file_A : str
+        Directory containing PDB files for protein A
+    trj_file_B : str
+        Directory containing PDB files for protein B
+    top_file_B : str
+        Directory containing PDB files for protein B
+    selection : str, default="name CA"
+        MDAnalysis selection string (e.g., "name CA", "protein and not type H")
+    radius_sim : float, default=3.0
+        Radius cutoff for simplicial mesh construction (in Angstroms)
+    align_sequence : bool, default=False
+        If True, perform Needleman-Wunsch sequence alignment between proteins
+        A and B to handle different sequences (e.g., mutations, indels)
+    verbose : bool, default=True
+        Print progress messages
+
+    Returns
+    -------
+    meshes : List[Mesh]
+        List of Mesh objects for all structures (A followed by B)
+    labels : List[int]
+        List of labels: -1 for protein A, 1 for protein B
+
+    Examples
+    --------
+    >>> # Basic usage without sequence alignment
+    >>> meshes, labels = convert_pdb_to_meshes(
+    ...     dir_prot_A="data/WT/",
+    ...     dir_prot_B="data/WT_replica/",
+    ...     selection="name CA",
+    ...     radius_sim=2.0
+    ... )
+
+    >>> # With sequence alignment for mutants
+    >>> meshes, labels = convert_pdb_to_meshes(
+    ...     dir_prot_A="data/WT/",
+    ...     dir_prot_B="data/R164S/",
+    ...     selection="protein",
+    ...     radius_sim=2.0,
+    ...     align_sequence=True
+    ... )
+    """
+    
+    t_A = md.load(trj_file_A, top=top_file_A)
+    t_B = md.load(trj_file_B, top=top_file_B)
+    radius_sim /= 10.0 # convert from Angstrom to nm
+
+    # Perform sequence alignment if requested
+    seqsel_A: Optional[List[bool]] = None
+    seqsel_B: Optional[List[bool]] = None
+
+    if align_sequence:
+        if verbose:
+            print("\nPerforming sequence alignment between protein A and B...")
+
+        seqsel_A, seqsel_B = _get_sequence_alignment_masks(
+            top_file_A,
+            top_file_B
+        )
+
+        if verbose:
+            n_aligned = sum(seqsel_A)
+            print(f"Sequence alignment complete:")
+            print(f"  Protein A: {len(seqsel_A)} residues, {n_aligned} aligned")
+            print(f"  Protein B: {len(seqsel_B)} residues, {n_aligned} aligned")
+
+    _align_selection_A = align_selection
+    _align_selection_B = align_selection
+    # Apply sequence alignment mask if needed
+    if align_sequence and seqsel_A is not None:
+        _align_selection_A = "resid " + " ".join(str(r.resid) for r in seqsel_A) + " and " + align_selection
+        _align_selection_B = "resid " + " ".join(str(r.resid) for r in seqsel_B) + " and " + align_selection
+    
+    align_indices_A = t_A.top.select(_align_selection_A)
+    align_indices_B = t_B.top.select(_align_selection_B)
+    # t_A.center_coordinates()
+    # t_B.center_coordinates()
+    _taA = t_A.topology.select(_align_selection_A)
+    for i in range(t_A.n_frames):
+        center = t_A.xyz[i, _taA].mean(axis=0)  # center of geometry of CA
+        t_A.xyz[i] -= center
+    _taB = t_B.topology.select(_align_selection_B)
+    for i in range(t_B.n_frames):
+        center = t_B.xyz[i, _taB].mean(axis=0)  # center of geometry of CA
+        t_B.xyz[i] -= center
+    
+    t_A.superpose(t_A, frame=0, atom_indices=align_indices_A)
+    t_B.superpose(t_A, frame=0, atom_indices=align_indices_B)
+
+    mesh_indices_A = t_A.top.select(mesh_selection)
+    mesh_indices_B = t_B.top.select(mesh_selection)
+
+    meshes: List[Mesh] = []
+    labels: List[int] = []
+    max_radius: float = 0.0
+
+    n_frames_A = t_A.n_frames
+    n_frames_B = t_B.n_frames
+
+    # Process protein A files
+    for i in range(n_frames_A):
+        if verbose:
+            sys.stdout.write(
+                f"Processing trajectory A: {i+1}/{n_frames_A} in meshes\r"
+            )
+            sys.stdout.flush()
+
+        # Generate mesh
+        pos = t_A.xyz[i][mesh_indices_A,:]
+        vertices = torch.from_numpy(pos).float()
+        mesh = Mesh(vertices, generate_mesh=True, radius=radius_sim)
+        radius = mesh.calc_radius()
+        max_radius = max(max_radius, radius)
+
+        meshes.append(mesh)
+        labels.append(-1)
+
+    for i in range(n_frames_B):
+        if verbose:
+            sys.stdout.write(
+                f"Processing trajectory B: {i+1}/{n_frames_B} in meshes\r"
+            )
+            sys.stdout.flush()
+
+        # Generate mesh
+        pos = t_B.xyz[i][mesh_indices_B,:]
+        vertices = torch.from_numpy(pos).float()
+        mesh = Mesh(vertices, generate_mesh=True, radius=radius_sim)
+        radius = mesh.calc_radius()
+        max_radius = max(max_radius, radius)
+
+        meshes.append(mesh)
+        labels.append(1)
+
+    if verbose:
+        print(f"Maximum radius: {max_radius:.3f} Å")
+        print("Normalizing meshes...")
+
+    # Normalize all meshes
+    for mesh in meshes:
+        # Scale vertices to unit sphere
+        mesh.normalize(max_radius)
+
+    if verbose:
+        print(f"\nNormalization complete: all meshes scaled to unit sphere")
+        print(f"\nTotal: {len(meshes)} meshes generated")
+        print(f"Labels: {labels.count(-1)} × protein A, {labels.count(1)} × protein B")
+
+    return meshes, labels

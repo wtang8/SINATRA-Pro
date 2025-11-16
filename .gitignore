@@ -145,14 +145,10 @@ cython_debug/
 
 # Project specific
 *.msh
-*.pdb
-*.xtc
-*.gro
 *.mesh
 *.off
 test_output/
 results/
-data/
 output/
 
 # Backup files
