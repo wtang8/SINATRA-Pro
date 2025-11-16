@@ -67,9 +67,10 @@ def calc_kld(mu: torch.Tensor, Lambda: torch.Tensor, V: torch.Tensor, q: int) ->
     
     # Compute α_q = λ_{-q,q}^T @ Λ_{−q,−q}^{−1} @ λ_{-q,q}
     # Add a small jitter for numerical stability to prevent singular matrix errors.
-    Lambda_minus_minus += 2e-6 * (torch.rand_like(Lambda_minus_minus) - 0.5)
-    lambda_minus_q += 2e-6 * (torch.rand_like(lambda_minus_q) - 0.5)
-    alpha_q = lambda_minus_q @ torch.linalg.solve(Lambda_minus_minus, lambda_minus_q)
+    # Lambda_minus_minus += 2e-6 * (torch.rand_like(Lambda_minus_minus) - 0.5)
+    # lambda_minus_q += 2e-6 * (torch.rand_like(lambda_minus_q) - 0.5)
+    # alpha_q = lambda_minus_q @ torch.linalg.solve(Lambda_minus_minus, lambda_minus_q)
+    alpha_q = lambda_minus_q.T @ Lambda_minus_minus @ lambda_minus_q
     
     # Compute KLD = 0.5 * μ_q^2 * α_q
     kld = 0.5 * mu[q]**2 * alpha_q
