@@ -15,36 +15,120 @@ Through detailed simulations, we assess the power of our algorithm as a function
 
 ## Package Details
 
-Code for implementing the SINATRA Pro pipeline was written in Python 3 (version 3.6.9). As part of this procedure:
+Code for implementing the SINATRA Pro pipeline was written in Python 3 (version 3.8+). As part of this procedure:
 
-1. Reading of trajectory files, alignment of protein structures, and neighbor search algorithms are done using the [MDAnalysis](https://www.mdanalysis.org) package (Gowers et. al. 2016, Michaud-Agrawal et. al. 2011).
-2. Most athematical calculations are performed using [NumPy](https://numpy.org) and [SciPy](https://www.scipy.org).
-3. Inference for the Gaussian process classification (GPC) model was done using elliptical slice sampling (Murray, Prescott, and MacKay 2010).
-4. Association measures are computed for the Euler characteristic curves using the relative centrality criterion (RATE), which is a variable selection measure for nonlinear and nonparametric statistical methods (see Crawford et al. 2019 and Ish-Horowicz et al. 2019).
+1. Reading of trajectory files, alignment of protein structures are done using the [MDAnalysis](https://www.mdanalysis.org) package (Gowers et. al. 2016, Michaud-Agrawal et. al. 2011).
+2. Neighbor search algorithms use KD-tree spatial indexing via [SciPy](https://www.scipy.org) for O(N log N) performance.
+3. Mesh vertices are represented as [PyTorch](https://pytorch.org) tensors for efficient computation.
+4. Most mathematical calculations are performed using [NumPy](https://numpy.org) and [SciPy](https://www.scipy.org).
+5. Inference for the Gaussian process classification (GPC) model was done using elliptical slice sampling (Murray, Prescott, and MacKay 2010).
+6. Association measures are computed for the Euler characteristic curves using the relative centrality criterion (RATE), which is a variable selection measure for nonlinear and nonparametric statistical methods (see Crawford et al. 2019 and Ish-Horowicz et al. 2019).
+
+### Recent Improvements
+
+The package has been recently refactored for improved performance and code quality:
+
+- **KD-tree Optimization**: Neighbor list creation now uses KD-tree spatial indexing (O(N log N)) instead of distance matrices (O(N²)), providing significant speedup for large protein structures.
+- **Comprehensive Test Suite**: 73+ unit tests across core modules (mesh, directions, euler) ensure code reliability and correctness.
+- **Modern Type Hints**: All functions include type annotations for better IDE support and code clarity.
+- **Enhanced Documentation**: NumPy-style docstrings with detailed parameter descriptions and examples throughout the codebase.
 
 ## Dependencies
 
-The SINATRA Pro package depends on the following Python 3 packages:
+The SINATRA Pro package requires Python 3.8 or higher and depends on the following packages:
 
-    numpy >= 1.18.0
-    scipy >= 1.5.0
-    mdanalysis >= 0.20.0
-    fast-histogram >= 0.9
-    joblib >= 0.16.0
+    numpy >= 1.20.0
+    scipy >= 1.7.0
+    torch >= 1.10.0
+    mdanalysis >= 2.0.0
+    fast-histogram >= 0.11
+    joblib >= 1.0.0
 
-## Python Package Download
+### Development Dependencies
+
+For running tests and development:
+
+    pytest >= 7.0.0
+    pytest-cov >= 3.0.0
+
+## Python Package Installation
 
 To install the package:
 
-        pip3 install SINATRA-Pro
+```bash
+pip install SINATRA-Pro
+```
 
-To load the package: 
+For development installation with test dependencies:
 
-        import sinatra_pro 
+```bash
+pip install SINATRA-Pro[dev]
+```
 
-To run the application:
+To load the package:
 
-        python3 -m sinatra_pro
+```python
+import sinatra_pro
+from sinatra_pro.mesh import Mesh
+from sinatra_pro.euler import compute_ec_curve
+from sinatra_pro.directions import generate_equidistributed_cones
+```
+
+### Running Tests
+
+After installation with dev dependencies:
+
+```bash
+cd python_package
+pytest test/
+```
+
+### Programmatic Usage
+
+Example of using the core API:
+
+```python
+import torch
+import numpy as np
+from sinatra_pro.mesh import Mesh
+from sinatra_pro.directions import generate_equidistributed_cones
+from sinatra_pro.euler import compute_ec_curve
+
+# Create a mesh from vertices (e.g., protein CA atoms)
+vertices = torch.rand(100, 3)  # 100 random 3D points
+mesh = Mesh(vertices, generate_mesh=True, radius=2.0)
+
+# Normalize the mesh to unit sphere
+mesh.normalize()
+
+# Generate equidistributed directions for EC curves
+directions = generate_equidistributed_cones(
+    n_cones=50,
+    cap_radius=0.8,
+    n_direction_per_cone=1,
+    hemisphere=False
+)
+
+# Compute Euler Characteristic curves
+radius, ec_curves = compute_ec_curve(
+    mesh,
+    directions,
+    n_filtrations=25,
+    ball_radius=1.0,
+    ec_type="DECT",
+    include_faces=True
+)
+
+print(f"EC curves shape: {ec_curves.shape}")  # (50, 25)
+```
+
+To run the command-line application:
+
+```bash
+sinatra-pro
+# or
+python3 -m sinatra_pro
+```
 
         usage: __main__.py [-h] [-pa PROTA] [-pb PROTB] [-sa STRUCT_FILE_A]
                            [-ta TRAJ_FILE_A] [-sb STRUCT_FILE_B] [-tb TRAJ_FILE_B]
@@ -52,7 +136,7 @@ To run the application:
                            [-of OFFSET] [-s SELECTION] [-r RADIUS] [-hs] [-et EC_TYPE]
                            [-c N_CONE] [-d N_DIRECTION_PER_CONE] [-t CAP_RADIUS]
                            [-l N_FILTRATION] [-bw BANDWIDTH] [-sm SAMPLING_METHOD]
-                           [-nm N_MCMC] [-ll] [-v] [-no]
+                           [-nm N_MCMC_STEPS] [-ll] [-v] [-no]
 
         optional arguments:
 
@@ -98,22 +182,24 @@ To run the application:
               -et EC_TYPE, --ec_type EC_TYPE
                                     type of Euler characteristic measure (DECT/ECT/SECT),
                                     default: DECT
-              -c N_CONE, --n_cone N_CONE
+              -c N_CONE, --n_cones N_CONE
                                     number of cone, default: 1
               -d N_DIRECTION_PER_CONE, --n_direction_per_cone N_DIRECTION_PER_CONE
                                     number of direction per cone, default: 1
               -t CAP_RADIUS, --cap_radius CAP_RADIUS
                                     cap radius, default: 0.8
-              -l N_FILTRATION, --n_filtration N_FILTRATION
+              -l N_FILTRATION, --n_filtrations N_FILTRATION
                                     number of filtration step, default: 20
               -bw BANDWIDTH, --bandwidth BANDWIDTH
                                     bandwidth for elliptical slice sampling, default: 0.01
               -sm SAMPLING_METHOD, --sampling_method SAMPLING_METHOD
                                     sampling method, default: ESS
-              -nm N_MCMC, --n_mcmc N_MCMC
+              -nm N_MCMC_STEPS, --n_mcmc_steps N_MCMC_STEPS
                                     number of sample from ESS
               -ll, --logistic_likelihood
                                     use logistic likelihood instead of probit likelihood
+              -lr, --low_rank       use low rank matrix approximations to compute the RATE
+                                    values
               -v, --verbose         verbose
               -no, --name_offset    name folder with offset
 
@@ -130,12 +216,12 @@ Starting from MD trajectories
                 --traj_file_B "R164S.xtc" \
                 --selection "protein and resid 65:213 and not (resid 164 and not backbone)" \
                 --radius 2.0 \
-                --n_cone 4 \
+                --n_cones 4 \
                 --n_direction_per_cone 4 \
                 --cap_radius 0.80 \
                 --ec_type "DECT" \
-                --n_filtration 60 \
-                --n_mcmc 100000 \
+                --n_filtrations 60 \
+                --n_mcmc_steps 100000 \
                 --parallel \
                 --n_core 4 --verbose
 
@@ -149,12 +235,12 @@ Starting from aligned PDB structures
                 --pdbpath_B "WT_R164S_65_230_2.0/pdb/R164S_offset_0/" \
                 --pdb_reference "WT_R164S_65_230_2.0/pdb/WT_offset_0/WT_frame0.pdb" \
                 --radius 2.0 \
-                --n_cone 1 \
+                --n_cones 1 \
                 --n_direction_per_cone 1 \
                 --cap_radius 0.80 \
                 --ec_type "DECT" \
-                --n_filtration 20 \
-                --n_mcmc 10000 \
+                --n_filtrations 20 \
+                --n_mcmc_steps 10000 \
                 --parallel \
                 --n_core 4 --verbose
 
@@ -166,4 +252,4 @@ For questions or concerns, please contact [Wai Shing Tang](mailto:wai_shing_tang
 
 ## Relevant Citations
 
-Wai Shing Tang*, Gabriel Monteiro da Silva*, Henry Kirveslahti, Erin Skeens, Bibo Feng, Timothy Sudijono, Kevin K. Yang, Sayan Mukherjee, Brenda Rubenstein, and Lorin Crawford. Topological data analytic approach for discovering biophysical signatures in protein dynamics. _PLOS Computational Biology_. **18**(5): e1010045.
+Wai Shing Tang*, Gabriel Monteiro da Silva*, Henry Kirveslahti, Erin Skeens, Bibo Feng, Timothy Sudijono, Kevin K. Yang, Sayan Mukherjee, Brenda Rubenstein, and Lorin Crawford. Topological data analytic approach for discovering biophysical signatures in protein dynamics. _bioRxiv_.
